@@ -1,0 +1,109 @@
+
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#07111f">
+<title>JARVIS Pessoal</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#050b14;color:#eafaff;font-family:Arial,sans-serif;padding:24px 16px}
+main{max-width:600px;margin:auto;text-align:center}
+h1{letter-spacing:5px;color:#65e5ff}
+p{color:#a5c2d4}
+.orb{width:160px;height:160px;margin:35px auto;border:2px solid #45cfff;border-radius:50%;display:grid;place-items:center;box-shadow:0 0 35px #168db955}
+.core{width:65px;height:65px;border-radius:50%;background:#63e6ff;box-shadow:0 0 35px #63e6ff}
+.panel{background:#0b1726;border:1px solid #18334b;border-radius:16px;padding:16px;margin:18px 0;text-align:left}
+input{width:100%;padding:14px;background:#07111f;color:white;border:1px solid #24516b;border-radius:10px;font-size:16px}
+button{padding:13px;background:#10374b;color:#72e5ff;border:1px solid #28627b;border-radius:10px;font-size:15px;margin-top:10px}
+.row{display:flex;gap:8px;flex-wrap:wrap}
+.row button{flex:1}
+#chat{white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.5}
+.msg{padding:10px;margin:8px 0;border-radius:10px;background:#102638}
+small{color:#91a8bc}
+</style>
+</head>
+<body>
+<main>
+<small>SEU ASSISTENTE PESSOAL</small>
+<h1>J.A.R.V.I.S.</h1>
+<p id="status">Sistema inicializado</p>
+<div class="orb" id="orb"><div class="core"></div></div>
+<section class="panel">
+<strong>CONVERSA</strong>
+<div id="chat" aria-live="polite">
+<div class="msg">Olá! Sou seu JARVIS pessoal. Ainda estou na versão inicial. Como posso ajudar?</div>
+</div>
+<form id="form">
+<input id="mensagem" placeholder="Digite sua mensagem..." autocomplete="off">
+<button type="submit">Enviar mensagem</button>
+</form>
+<div class="row">
+<button id="falar" type="button">🎙️ Falar</button>
+<button id="ouvir" type="button">🔊 Ouvir resposta</button>
+</div>
+</section>
+<section class="panel">
+<strong>FERRAMENTAS</strong>
+<div class="row">
+<button id="hora" type="button">Ver horário</button>
+<button id="pesquisa" type="button">Pesquisar na internet</button>
+</div>
+</section>
+<section class="panel">
+<strong>MEMÓRIA LOCAL</strong>
+<p><small>Notas guardadas neste navegador.</small></p>
+<form id="memform">
+<input id="nota" placeholder="O que devo lembrar?">
+<button type="submit">Guardar nota</button>
+</form>
+<div id="memorias"></div>
+<button id="apagar" type="button">Apagar notas</button>
+</section>
+<p><small>Protótipo: a IA real ainda não está conectada. Não guarde informações sensíveis.</small></p>
+</main>
+<script>
+const el=id=>document.getElementById(id);
+let ultima="Olá! Sou seu JARVIS pessoal.";
+function mensagem(texto,tipo="msg"){
+const d=document.createElement("div");
+d.className="msg";d.textContent=texto;
+el("chat").appendChild(d);el("chat").scrollTop=el("chat").scrollHeight;
+if(tipo==="bot")ultima=texto;
+}
+function responder(t){
+const s=t.toLowerCase();let r;
+if(s.includes("oi")||s.includes("olá")||s.includes("ola"))r="Olá! Estou pronto para ajudar. O que vamos fazer hoje?";
+else if(s.includes("hora")||s.includes("data"))r="Agora são "+new Date().toLocaleString("pt-BR")+".";
+else if(s.includes("seu nome")||s.includes("quem é você"))r="Sou seu JARVIS pessoal, em versão inicial. Para respostas inteligentes completas, precisaremos conectar um modelo de IA.";
+else r="Recebi sua mensagem: "+t+"\nMinha interface está funcionando, mas ainda preciso ser conectado a um modelo de IA para responder de forma inteligente.";
+mensagem("Você: "+t);
+mensagem(r,"bot");
+}
+el("form").addEventListener("submit",e=>{e.preventDefault();const t=el("mensagem").value.trim();if(t){responder(t);el("mensagem").value=""}});
+el("hora").onclick=()=>mensagem("Agora são "+new Date().toLocaleString("pt-BR"),"bot");
+el("pesquisa").onclick=()=>window.open("https://www.google.com/","_blank");
+function ler(t){if("speechSynthesis"in window){speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(t);u.lang="pt-BR";speechSynthesis.speak(u)}else mensagem("A leitura de voz não é suportada neste navegador.","bot")}
+el("ouvir").onclick=()=>ler(ultima);
+el("falar").onclick=()=>{
+const R=window.SpeechRecognition||window.webkitSpeechRecognition;
+if(!R){mensagem("O reconhecimento de voz não está disponível neste navegador. Use o campo de texto.","bot");return}
+const r=new R();r.lang="pt-BR";
+el("status").textContent="Escutando...";
+el("orb").style.boxShadow="0 0 45px #63e6ff";
+r.onresult=e=>{const t=e.results[0][0].transcript;responder(t)};
+r.onerror=()=>mensagem("Não consegui acessar o microfone. Verifique as permissões.","bot");
+r.onend=()=>{el("status").textContent="Sistema inicializado";el("orb").style.boxShadow="0 0 35px #168db955"};
+r.start();
+};
+function listar(){
+const a=JSON.parse(localStorage.getItem("jarvis-notas")||"[]");
+el("memorias").textContent=a.map((n,i)=>(i+1)+". "+n).join("\n")||"Nenhuma nota guardada.";
+}
+el("memform").addEventListener("submit",e=>{e.preventDefault();const n=el("nota").value.trim();if(!n)return;const a=JSON.parse(localStorage.getItem("jarvis-notas")||"[]");a.push(n);localStorage.setItem("jarvis-notas",JSON.stringify(a));el("nota").value="";listar();mensagem("Nota guardada neste navegador.","bot")});
+el("apagar").onclick=()=>{if(confirm("Apagar todas as notas?")){localStorage.removeItem("jarvis-notas");listar()}};
+listar();
+</script>
+</body>
+</html>
